@@ -33,12 +33,13 @@ function doPost(e) {
     // ======== 如果是出場 ========
     if (action === "exit") {
       const lastRow = sheet.getLastRow();
-      if (lastRow < 2) return jsonResponse({status: "error", message: "沒有入場紀錄"});
+      if (lastRow < 1) return jsonResponse({status: "error", message: "表單完全是空的"});
       
-      const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+      // 直接從第 1 列讀到最後一列，不管有沒有留標題列 (Header) 都不會壞
+      const values = sheet.getRange(1, 1, lastRow, 4).getValues();
       let lastEntryIndex = -1;
       for (let i = values.length - 1; i >= 0; i--) {
-        // 確保是 entry 且欄位 4 還沒有填寫數字（允許空字串或未定義）
+        // 確保這筆是 entry 且欄位 4 沒有紀錄到結算的分鐘數
         if (values[i][2] === "entry" && (values[i][3] === "" || values[i][3] === null || values[i][3] === undefined)) {
           lastEntryIndex = i;
           break;
@@ -46,7 +47,6 @@ function doPost(e) {
       }
       
       if (lastEntryIndex === -1) {
-        // 若找不到可以結算的紀錄，我們也把這個錯誤印進表格，方便除錯
         sheet.appendRow(["ERROR", now, "exit_failed", "找不到未結算的 entry 紀錄"]);
         return jsonResponse({status: "error", message: "找不到對應的尚未結算的入場紀錄"});
       }
@@ -55,7 +55,8 @@ function doPost(e) {
       const diffMs = now.getTime() - entryTime.getTime();
       const diffMins = Math.round(diffMs / 60000); 
       
-      sheet.getRange(lastEntryIndex + 2, 4).setValue(diffMins);
+      // 由於 lastEntryIndex 是從 0 開始，對應到試算表列數就是 lastEntryIndex + 1
+      sheet.getRange(lastEntryIndex + 1, 4).setValue(diffMins);
       sheet.appendRow([Utilities.getUuid(), now, "exit", diffMins]);
       
       return jsonResponse({status: "success", action: "exit", minutes: diffMins});
