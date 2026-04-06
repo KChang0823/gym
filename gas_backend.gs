@@ -12,61 +12,66 @@ function doPost(e) {
   try {
     const rawContent = e.postData.contents;
     const data = JSON.parse(rawContent);
-    const action = data.action; // "entry" 或是 "exit"
-    const timestampStr = data.timestamp; // "2026-04-06 18:00:00" 或單純交給 GAS 去生
+    // 強制轉為小寫並去除空白，防止 iOS 鍵盤自動首字大寫（例如打成 "Exit"）
+    const action = data.action ? data.action.toString().toLowerCase().trim() : ""; 
+    const timestampStr = data.timestamp; 
     
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_RAW);
     
     if (!sheet) {
-      return ContentService.createTextOutput(JSON.stringify({status: "error", message: "找不到 RawData 工作表"}))
-                           .setMimeType(ContentService.MimeType.JSON);
+      return jsonResponse({status: "error", message: "找不到 RawData 工作表"});
     }
     
     const now = new Date();
     
-    // 如果是入場
+    // ======== 如果是入場 ========
     if (action === "entry") {
-      // 假設欄位 [UUID, 日期時間, 動作, 單次花費時間]
-      // 寫入: [ UUID(), now, "entry", "" ]
       sheet.appendRow([Utilities.getUuid(), now, "entry", ""]);
       return jsonResponse({status: "success", action: "entry", time: now});
     }
     
-    // 如果是出場
+    // ======== 如果是出場 ========
     if (action === "exit") {
-      // 處理邏輯：找最後一筆且動作為 "entry" 的紀錄配對
       const lastRow = sheet.getLastRow();
       if (lastRow < 2) return jsonResponse({status: "error", message: "沒有入場紀錄"});
       
       const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-      // 從後面往前找最後一次 entry
       let lastEntryIndex = -1;
       for (let i = values.length - 1; i >= 0; i--) {
-        if (values[i][2] === "entry" && !values[i][3]) {
+        // 確保是 entry 且欄位 4 還沒有填寫數字（允許空字串或未定義）
+        if (values[i][2] === "entry" && (values[i][3] === "" || values[i][3] === null || values[i][3] === undefined)) {
           lastEntryIndex = i;
           break;
         }
       }
       
       if (lastEntryIndex === -1) {
+        // 若找不到可以結算的紀錄，我們也把這個錯誤印進表格，方便除錯
+        sheet.appendRow(["ERROR", now, "exit_failed", "找不到未結算的 entry 紀錄"]);
         return jsonResponse({status: "error", message: "找不到對應的尚未結算的入場紀錄"});
       }
       
       const entryTime = new Date(values[lastEntryIndex][1]);
       const diffMs = now.getTime() - entryTime.getTime();
-      const diffMins = Math.round(diffMs / 60000); // 計算經過的分鐘數
+      const diffMins = Math.round(diffMs / 60000); 
       
-      // 更新那筆資料的回傳時間
       sheet.getRange(lastEntryIndex + 2, 4).setValue(diffMins);
-      // 再寫一筆 exit 作為紀錄追蹤（選配，如果你只要有時間就好也可不寫）
-      sheet.appendRow([Utilities.getUuid(), now, "exit", 0]);
+      sheet.appendRow([Utilities.getUuid(), now, "exit", diffMins]);
       
       return jsonResponse({status: "success", action: "exit", minutes: diffMins});
     }
     
-    return jsonResponse({status: "error", message: "Unknown action"});
+    // 若不是 entry 也不是 exit，可能是打錯字！寫入除錯紀錄
+    sheet.appendRow(["ERROR", now, "unknown_action", `收到未知的 action: [${data.action}]`]);
+    return jsonResponse({status: "error", message: "Unknown action", received: action});
     
   } catch(err) {
+    // 若是程式徹底死了（例如 JSON 解析失敗），也盡可能留下紀錄
+    try {
+      const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME_RAW);
+      sheet.appendRow(["FATAL_ERROR", new Date(), "crash", err.toString()]);
+    } catch(e) {}
+    
     return jsonResponse({status: "error", message: err.toString()});
   }
 }
