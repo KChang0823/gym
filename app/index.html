@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Under Tension | Workout Tracker</title>
+  
+  <!-- Premium Typography: Bricolage Grotesque for bold display, Inter for UI text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-dark">
+  <div class="site-wrapper">
+    <header class="header">
+      <div class="status-indicator">
+        <span class="pulse-dot"></span>
+        <span class="status-text">Monthly Objective</span>
+      </div>
+      <h1 class="brand">TUT.SYS</h1>
+    </header>
+
+    <main class="dashboard-grid">
+      <!-- 核心總覽區: 大膽留白，數字為王 -->
+      <section class="panel panel-primary">
+        <div class="metric-group">
+          <p class="metric-label">Accumulated Time</p>
+          <div class="metric-value-wrapper">
+            <span class="metric-value" id="total-minutes">0</span>
+            <span class="metric-unit">MIN</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="time-progress"></div>
+          </div>
+          <p class="metric-subtext" id="goal-status">Target: 824 min to break even.</p>
+        </div>
+      </section>
+
+      <!-- 次要資訊區: 財務換算與一致性 -->
+      <section class="secondary-panels">
+        
+        <div class="panel panel-secondary">
+          <div class="panel-header">
+            <h2 class="panel-title">Value Extracted</h2>
+            <button class="panel-badge highlight clickable" id="btn-roi-settings">ROI <span class="badge-icon">⚙</span></button>
+          </div>
+          <div class="financial-display">
+            <span class="currency-symbol">NT$</span>
+            <span class="financial-value" id="earned-value">0</span>
+          </div>
+          <p class="panel-desc" id="valuation-desc">Cost basis: NT$988 / month. Valuation at 1.2/min.</p>
+        </div>
+
+        <div class="panel panel-secondary">
+          <div class="panel-header">
+            <h2 class="panel-title">Consistency</h2>
+            <span class="panel-badge">Log</span>
+          </div>
+          <div class="consistency-display">
+            <span class="consistency-value" id="visit-count">0</span>
+            <span class="consistency-unit">Visits</span>
+          </div>
+          <p class="panel-desc">Current month check-ins.</p>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Settings Modal (Dialog) -->
+  <dialog id="settings-modal" class="modal">
+    <div class="modal-content">
+      <header class="modal-header">
+        <h3 class="modal-title">Valuation Adjust</h3>
+        <button id="btn-close-modal" class="btn-close">&times;</button>
+      </header>
+      <div class="modal-body">
+        <label for="valuation-slider" class="slider-label">
+          Value per minute: <span id="slider-val-display" class="highlight-text">NT$ 1.2</span>
+        </label>
+        <input type="range" id="valuation-slider" class="styled-slider" min="0" max="2" step="0.1" value="1.2">
+        <p class="modal-hint">Adjust the baseline to recalculate your consistency targets.</p>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
