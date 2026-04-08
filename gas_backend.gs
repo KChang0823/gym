@@ -107,9 +107,9 @@ function doGet(e) {
       if (recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear) {
         if (action === "entry") {
           visits += 1;
-        }
-        if (timeSpent && typeof timeSpent === 'number') {
-          totalMinutes += timeSpent;
+          if (timeSpent && typeof timeSpent === 'number') {
+            totalMinutes += timeSpent;
+          }
         }
       }
     }
